@@ -40,6 +40,9 @@ echo "net.core.default_qdisc=fq" >> package/base-files/files/etc/sysctl.d/bbr.co
 echo "net.ipv4.tcp_congestion_control=bbr" >> package/base-files/files/etc/sysctl.d/bbr.conf
 echo "net.ipv4.tcp_fastopen=3" >> package/base-files/files/etc/sysctl.d/bbr.conf
 
+# 开启eBPF BTF支持(DAE依赖BPF+BTF)
+sed -i '/CONFIG_BPF_UNPRIV_DEFAULT_OFF=y/a CONFIG_DEBUG_INFO_BTF=y' target/linux/generic/config-6.12
+
 # 移除要替换的包
 rm -rf feeds/luci/applications/luci-app-argon-config
 rm -rf feeds/luci/applications/luci-app-wechatpush
@@ -109,7 +112,8 @@ rm -rf feeds/luci/applications/luci-app-passwall
 rm -rf feeds/luci/applications/luci-app-openclash
 git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2 package/luci-app-passwall2
 git clone --depth=1 https://github.com/vernesong/OpenClash package/luci-app-openclash
-git clone --depth=1 https://github.com/sbwml/luci-app-dae package/luci-app-dae
+git clone --depth=1 https://github.com/ysuolmai/luci-app-dae package/dae
+mv package/dae/dae package/dae/luci-app-dae package/ 2>/dev/null; rm -rf package/dae
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a
