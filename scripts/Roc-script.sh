@@ -112,8 +112,8 @@ rm -rf feeds/luci/applications/luci-app-passwall
 rm -rf feeds/luci/applications/luci-app-openclash
 git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2 package/luci-app-passwall2
 git clone --depth=1 https://github.com/vernesong/OpenClash package/luci-app-openclash
-git clone --depth=1 https://github.com/ysuolmai/luci-app-dae package/dae
-mv package/dae/dae package/dae/luci-app-dae package/ 2>/dev/null; rm -rf package/dae
+git clone --depth=1 https://github.com/ysuolmai/luci-app-dae package/dae-tmp
+mv package/dae-tmp/dae package/dae-tmp/luci-app-dae package/ 2>/dev/null; rm -rf package/dae-tmp
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a
