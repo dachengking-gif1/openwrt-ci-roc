@@ -32,6 +32,8 @@ sed -i 's/opp-microvolt = <937500>;/opp-microvolt = <950000>;/' target/linux/qua
 # 开启BBR拥塞控制算法及FQ队列(需内核支持，kernel 6.12已包含BBRv1)
 sed -i 's/# CONFIG_TCP_CONG_BBR is not set/CONFIG_TCP_CONG_BBR=y/' target/linux/generic/config-6.12
 sed -i 's/DEFAULT_TCP_CONG="cubic"/DEFAULT_TCP_CONG="bbr"/' target/linux/generic/config-6.12
+sed -i 's/CONFIG_DEFAULT_CUBIC=y/# CONFIG_DEFAULT_CUBIC is not set/' target/linux/generic/config-6.12
+sed -i '/^CONFIG_TCP_CONG_BBR=y/a CONFIG_DEFAULT_BBR=y' target/linux/generic/config-6.12
 sed -i 's/# CONFIG_NET_SCH_FQ is not set/CONFIG_NET_SCH_FQ=y/' target/linux/generic/config-6.12
 
 # 设置系统默认使用BBR
@@ -39,9 +41,6 @@ mkdir -p package/base-files/files/etc/sysctl.d
 echo "net.core.default_qdisc=fq" >> package/base-files/files/etc/sysctl.d/bbr.conf
 echo "net.ipv4.tcp_congestion_control=bbr" >> package/base-files/files/etc/sysctl.d/bbr.conf
 echo "net.ipv4.tcp_fastopen=3" >> package/base-files/files/etc/sysctl.d/bbr.conf
-
-# 开启eBPF BTF支持(DAE依赖BPF+BTF)
-sed -i '/CONFIG_BPF_UNPRIV_DEFAULT_OFF=y/a CONFIG_DEBUG_INFO_BTF=y' target/linux/generic/config-6.12
 
 # 移除要替换的包
 rm -rf feeds/luci/applications/luci-app-argon-config
@@ -112,8 +111,9 @@ rm -rf feeds/luci/applications/luci-app-passwall
 rm -rf feeds/luci/applications/luci-app-openclash
 git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2 package/luci-app-passwall2
 git clone --depth=1 https://github.com/vernesong/OpenClash package/luci-app-openclash
-git clone --depth=1 https://github.com/ysuolmai/luci-app-dae package/dae-tmp
-mv package/dae-tmp/dae package/dae-tmp/luci-app-dae package/ 2>/dev/null; rm -rf package/dae-tmp
+git clone --depth=1 https://github.com/ysuolmai/luci-app-dae /tmp/luci-app-dae-feed
+cp -rf /tmp/luci-app-dae-feed/dae package/
+cp -rf /tmp/luci-app-dae-feed/luci-app-dae package/
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a
