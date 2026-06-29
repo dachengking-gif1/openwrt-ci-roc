@@ -223,7 +223,15 @@ jobs:
         cd "$OPENWRT_PATH"/bin/targets/*/*
         cp "$OPENWRT_PATH/.config" "$ARTIFACT_PREFIX.config"
         mv config.buildinfo "$ARTIFACT_PREFIX.config.buildinfo"
-        mv "$MANIFEST_FILE" "$ARTIFACT_PREFIX.manifest"
+        if [ ! -f "$MANIFEST_FILE" ]; then
+          echo "Generating manifest file..."
+          find "$OPENWRT_PATH/bin/packages" -type f \( -name '*.apk' -o -name '*.ipk' \) -exec ls -lh {} \; > "$MANIFEST_FILE" 2>/dev/null || true
+        fi
+        if [ ! -f "$MANIFEST_FILE" ]; then
+          echo "Error: Manifest file '$MANIFEST_FILE' was not created"
+          exit 1
+        fi
+        mv -f "$MANIFEST_FILE" "$ARTIFACT_PREFIX.manifest"
         case "$PACKAGE_EXTENSION" in
           apk | ipk) ;;
           *)
