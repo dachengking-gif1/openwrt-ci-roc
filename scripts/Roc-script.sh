@@ -31,6 +31,9 @@ sed -i '/opp-supported-hw/d' target/linux/qualcommax/patches-6.12/0038-v6.16-arm
 # 调节IPQ60XX的1.5GHz频率电压(从0.9375V提高到0.95V，过低可能导致不稳定，过高可能增加功耗和发热，具体数值需要根据实际情况调整)
 sed -i 's/opp-microvolt = <937500>;/opp-microvolt = <950000>;/' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
 
+# 清除内核构建缓存，强制重新应用修改后的 patch（避免缓存跳过新的 patch 修改）
+rm -rf build_dir/target-*/linux-*
+
 # 开启BBR拥塞控制算法及FQ队列(需内核支持，kernel 6.12已包含BBRv1)
 sed -i 's/# CONFIG_TCP_CONG_BBR is not set/CONFIG_TCP_CONG_BBR=y/' target/linux/generic/config-6.12
 sed -i 's/DEFAULT_TCP_CONG="cubic"/DEFAULT_TCP_CONG="bbr"/' target/linux/generic/config-6.12
