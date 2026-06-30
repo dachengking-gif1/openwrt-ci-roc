@@ -28,11 +28,14 @@ sed -i "s#_('Firmware Version'), (L\.isObject(boardinfo\.release) ? boardinfo\.r
 
 # 调整IPQ6018的NSS q6_region内存大小(ipq6018.dtsi默认85MB=0x5500000，改为96MB=0x06000000)
 # 通过修改0135 patch将q6_region reg从上下文转为diff变更，NN6000v2(2GB)需要足够NSS内存
-sed -i '/reg = <0x0 0x4ab00000 0x0 0x5500000>;$/{
-s/^[[:space:]]/-/
-a\
-+\t\t\treg = <0x0 0x4ab00000 0x0 0x06000000>;
-}' target/linux/qualcommax/patches-6.12/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
+awk '/^[[:space:]].*0x4ab00000.*0x5500000/ {
+    gsub(/^ /, "-")
+    print
+    gsub(/^-/, "+")
+    sub(/0x5500000/, "0x06000000")
+    print
+    next
+} { print }' target/linux/qualcommax/patches-6.12/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch > /tmp/0135.patch && mv /tmp/0135.patch target/linux/qualcommax/patches-6.12/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
 
 # 解除IPQ60XX 1.5GHz的硬件限制(移除opp-supported-hw掩码，使所有硬件版本可用该频率)
 sed -i '/opp-supported-hw/d' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
