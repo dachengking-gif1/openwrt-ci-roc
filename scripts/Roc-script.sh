@@ -58,6 +58,9 @@ echo "net.core.default_qdisc=fq" >> package/base-files/files/etc/sysctl.d/bbr.co
 echo "net.ipv4.tcp_congestion_control=bbr" >> package/base-files/files/etc/sysctl.d/bbr.conf
 echo "net.ipv4.tcp_fastopen=3" >> package/base-files/files/etc/sysctl.d/bbr.conf
 
+# 调整zram交换分区大小(默认公式ram_size/2048=934MB过大，改为256MB)
+sed -i 's/echo $(( ram_size \/ 2048 ))/echo 256/' package/system/zram-swap/files/zram.init
+
 # 移除要替换的包
 rm -rf feeds/luci/applications/luci-app-argon-config
 rm -rf feeds/luci/applications/luci-app-wechatpush
