@@ -37,8 +37,8 @@ awk '/^[[:space:]].*0x4ab00000.*0x5500000/ {
     next
 } { print }' target/linux/qualcommax/patches-6.12/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch > /tmp/0135.patch && mv /tmp/0135.patch target/linux/qualcommax/patches-6.12/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
 
-# 解除IPQ60XX 1.5GHz的硬件限制(移除opp-supported-hw掩码，使所有硬件版本可用该频率)
-sed -i '/opp-supported-hw/d' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
+# 解除IPQ60XX 1.5GHz的硬件限制(将opp-supported-hw掩码改为0xff全开，替代直接删除行以避免破坏patch格式)
+sed -i 's/opp-supported-hw = <0x2>;/opp-supported-hw = <0xffffffff>;/' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
 # 调节IPQ60XX的1.5GHz频率电压(从0.9375V提高到0.95V，过低可能导致不稳定，过高可能增加功耗和发热，具体数值需要根据实际情况调整)
 sed -i 's/opp-microvolt = <937500>;/opp-microvolt = <950000>;/' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
 
