@@ -43,6 +43,10 @@ on:
         required: false
         type: string
         default: apk
+      diy_script:
+        required: false
+        type: string
+        default: scripts/Roc-script.sh
 
 permissions:
   contents: read
@@ -54,7 +58,7 @@ defaults:
 
 env:
   GENERAL_CONFIG_FILE: configs/General.config
-  DIY_SCRIPT: scripts/Roc-script.sh
+  DIY_SCRIPT: ${{ inputs.diy_script }}
   TZ: Asia/Shanghai
 
 jobs:
