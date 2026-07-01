@@ -45,6 +45,14 @@ sed -i 's/opp-microvolt = <937500>;/opp-microvolt = <950000>;/' target/linux/qua
 # 清除内核构建缓存，强制重新应用修改后的 patch（避免缓存跳过新的 patch 修改）
 rm -rf build_dir/target-*/linux-*
 
+# 替换ath11k-firmware源为CodeLinaro 2.7.0.1-02409（官方IPQ6018最新版）
+ATH11K_MK="package/firmware/ath11k-firmware/Makefile"
+sed -i 's|PKG_SOURCE_URL:=https://github.com/VIKINGYFY/ath11k-firmware-ddwrt.git|PKG_SOURCE_URL:=https://git.codelinaro.org/clo/ath-firmware/ath11k-firmware.git|' "$ATH11K_MK"
+sed -i 's|PKG_SOURCE_VERSION:=e853ab3fedec869ca666e871ef4bab41237b09e6|PKG_SOURCE_VERSION:=2044a5b7e0da88a34c728a62e7f262b67c141739|' "$ATH11K_MK"
+sed -i 's|PKG_MIRROR_HASH:=4d37ebfec65fd5d1585c38bd6925fbc46bb6ad2a7eacc5ea93685f2873c1f291|PKG_MIRROR_HASH:=skip|' "$ATH11K_MK"
+sed -i 's|PKG_SOURCE_DATE:=2026-03-21|PKG_SOURCE_DATE:=2026-03-24|' "$ATH11K_MK"
+sed -i 's|IPQ6018/hw1.0/\*|IPQ6018/hw1.0/2.7.0.1/WLAN.HK.2.7.0.1-02409-QCAHKSWPL_SILICONZ-1/*|' "$ATH11K_MK"
+
 # 开启BBR拥塞控制算法及FQ队列(需内核支持，kernel 6.12已包含BBRv1)
 sed -i 's/# CONFIG_TCP_CONG_BBR is not set/CONFIG_TCP_CONG_BBR=y/' target/linux/generic/config-6.12
 sed -i 's/DEFAULT_TCP_CONG="cubic"/DEFAULT_TCP_CONG="bbr"/' target/linux/generic/config-6.12
