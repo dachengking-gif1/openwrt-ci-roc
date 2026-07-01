@@ -23,8 +23,61 @@ sed -i "s#_('Firmware Version'), (L\.isObject(boardinfo\.release) ? boardinfo\.r
 # 调整IPQ6018的NSS q6_region内存大小(VIKINGYFY默认64MB=0x4000000，改为96MB=0x06000000)
 sed -i 's/reg = <0x0 0x4ab00000 0x0 0x4000000>/reg = <0x0 0x4ab00000 0x0 0x06000000>/' target/linux/qualcommax/patches-6.18/0103-arm64-dts-ipq6018-add-reserved-memory-nodes.patch
 
-# 调节IPQ60XX的1.5GHz频率电压(VIKINGYFY已经启用1.5GHz且opp-supported-hw已改为全开，仅需调电压)
-sed -i 's/opp-microvolt = <937500>;/opp-microvolt = <950000>;/' target/linux/qualcommax/patches-6.18/0131-arm64-dts-qcom-ipq6018-change-CPU-OPP-table.patch
+# 完全重写0131 patch以匹配upstream kernel 6.18的完整OPP表(8个频率项,含864/1056/1200/1320/1440/1512/1608/1800MHz)
+# upstream DTS已有opp-supported-hw = <0xf>对864MHz/1056MHz,但1.2GHz+仍有受限的speed-bin mask
+cat > target/linux/qualcommax/patches-6.18/0131-arm64-dts-qcom-ipq6018-change-CPU-OPP-table.patch << 'PATCH'
+--- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
++++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+@@ -118,7 +118,7 @@
+ 		opp-1200000000 {
+ 			opp-hz = /bits/ 64 <1200000000>;
+ 			opp-microvolt = <850000>;
+-			opp-supported-hw = <0x4>;
++			opp-supported-hw = <0xf>;
+ 			clock-latency-ns = <200000>;
+ 		};
+@@ -125,7 +125,7 @@
+ 		opp-1320000000 {
+ 			opp-hz = /bits/ 64 <1320000000>;
+ 			opp-microvolt = <862500>;
+-			opp-supported-hw = <0x3>;
++			opp-supported-hw = <0xf>;
+ 			clock-latency-ns = <200000>;
+ 		};
+@@ -132,7 +132,7 @@
+ 		opp-1440000000 {
+ 			opp-hz = /bits/ 64 <1440000000>;
+ 			opp-microvolt = <925000>;
+-			opp-supported-hw = <0x3>;
++			opp-supported-hw = <0xf>;
+ 			clock-latency-ns = <200000>;
+ 		};
+@@ -139,7 +139,7 @@
+ 		opp-1512000000 {
+ 			opp-hz = /bits/ 64 <1512000000>;
+-			opp-microvolt = <937500>;
++			opp-microvolt = <950000>;
+-			opp-supported-hw = <0x2>;
++			opp-supported-hw = <0xf>;
+ 			clock-latency-ns = <200000>;
+ 		};
+@@ -146,7 +146,7 @@
+ 		opp-1608000000 {
+ 			opp-hz = /bits/ 64 <1608000000>;
+ 			opp-microvolt = <987500>;
+-			opp-supported-hw = <0x1>;
++			opp-supported-hw = <0xf>;
+ 			clock-latency-ns = <200000>;
+ 		};
+@@ -153,7 +153,7 @@
+ 		opp-1800000000 {
+ 			opp-hz = /bits/ 64 <1800000000>;
+ 			opp-microvolt = <1062500>;
+-			opp-supported-hw = <0x1>;
++			opp-supported-hw = <0xf>;
+ 			clock-latency-ns = <200000>;
+ 		};
+PATCH
 
 # 清除内核构建缓存，强制重新应用修改后的 patch
 rm -rf build_dir/target-*/linux-*
