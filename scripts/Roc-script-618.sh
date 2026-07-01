@@ -56,8 +56,8 @@ cat > target/linux/qualcommax/patches-6.18/0131-arm64-dts-qcom-ipq6018-change-CP
  		opp-1512000000 {
  			opp-hz = /bits/ 64 <1512000000>;
 -			opp-microvolt = <937500>;
-+			opp-microvolt = <950000>;
 -			opp-supported-hw = <0x2>;
++			opp-microvolt = <950000>;
 +			opp-supported-hw = <0xf>;
  			clock-latency-ns = <200000>;
  		};
