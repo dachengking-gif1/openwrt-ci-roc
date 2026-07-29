@@ -26,8 +26,10 @@ sed -i "s#_('Firmware Version'), (L\.isObject(boardinfo\.release) ? boardinfo\.r
 # sed -i 's/reg = <0x0 0x4ab00000 0x0 0x[0-9a-f]\+>/reg = <0x0 0x4ab00000 0x0 0x04000000>/' target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-512m.dtsi
 # sed -i 's/reg = <0x0 0x4ab00000 0x0 0x[0-9a-f]\+>/reg = <0x0 0x4ab00000 0x0 0x06000000>/' target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-512m.dtsi
 
+# 解除IPQ60XX 1.5GHz的硬件限制
+sed -i 's/opp-supported-hw = <0x2>;/opp-supported-hw = <0xffffffff>;/' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
 # 调节IPQ60XX的1.5GHz频率电压(从0.9375V提高到0.95V，过低可能导致不稳定，过高可能增加功耗和发热，具体数值需要根据实际情况调整)
-# sed -i 's/opp-microvolt = <937500>;/opp-microvolt = <950000>;/' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
+sed -i 's/opp-microvolt = <937500>;/opp-microvolt = <950000>;/' target/linux/qualcommax/patches-6.12/0038-v6.16-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
 
 # 移除要替换的包
 rm -rf feeds/luci/applications/luci-app-argon-config
@@ -42,8 +44,6 @@ rm -rf feeds/luci/themes/luci-theme-argon
 rm -rf feeds/packages/net/open-app-filter
 rm -rf feeds/packages/net/ddns-scripts
 rm -rf feeds/packages/net/miniupnpd
-rm -rf feeds/packages/net/ariang
-rm -rf feeds/packages/net/aria2
 rm -rf feeds/packages/net/nginx
 rm -rf feeds/packages/net/frp
 rm -rf feeds/packages/lang/golang
@@ -66,13 +66,9 @@ function git_sparse_clone() {
   rm -rf "$repodir"
 }
 
-# Aria2 & nginx & Go & DDNS & frp & UPnP & Wol & Argon & Aurora & OpenList & Lucky & wechatpush & OpenAppFilter & 集客无线AC控制器 & 雅典娜LED控制
-git_sparse_clone aria2 https://github.com/laipeng668/packages net/aria2
-mv -f package/aria2 feeds/packages/net/aria2
+# Nginx & Go & DDNS & frp & UPnP & Wol & Argon & Aurora & OpenList & Lucky & wechatpush & OpenAppFilter & 集客无线AC控制器 & 雅典娜LED控制
 git_sparse_clone nginx https://github.com/laipeng668/packages net/nginx
 mv -f package/nginx feeds/packages/net/nginx
-git_sparse_clone ariang https://github.com/laipeng668/packages net/ariang
-mv -f package/ariang feeds/packages/net/ariang
 git_sparse_clone master https://github.com/laipeng668/packages lang/golang
 mv -f package/golang feeds/packages/lang/golang
 git_sparse_clone master https://github.com/laipeng668/packages net/ddns-scripts
@@ -102,7 +98,7 @@ git clone --depth=1 https://github.com/laipeng668/luci-app-gecoosac package/luci
 git clone --depth=1 https://github.com/NONGFAH/luci-app-athena-led package/luci-app-athena-led
 chmod +x package/luci-app-athena-led/root/etc/init.d/athena_led package/luci-app-athena-led/root/usr/sbin/athena-led
 
-### PassWall & OpenClash ###
+### PassWall2 ###
 
 # 移除 OpenWrt Feeds 自带的核心库
 rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
@@ -110,13 +106,82 @@ git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall-package
 
 # 移除 OpenWrt Feeds 过时的LuCI版本
 rm -rf feeds/luci/applications/luci-app-passwall
-rm -rf feeds/luci/applications/luci-app-openclash
-git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall package/luci-app-passwall
+rm -rf feeds/luci/applications/luci-app-passwall2
 git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2 package/luci-app-passwall2
-git clone --depth=1 https://github.com/vernesong/OpenClash package/luci-app-openclash
 
-# 清理 PassWall 的 chnlist 规则文件
-echo "baidu.com"  > package/luci-app-passwall/luci-app-passwall/root/usr/share/passwall/rules/chnlist
+### 系统优化 ###
+
+# TCP BBR + 降低 swappiness
+mkdir -p package/base-files/files/etc
+grep -qF "net.core.default_qdisc=fq" package/base-files/files/etc/sysctl.conf 2>/dev/null || cat >> package/base-files/files/etc/sysctl.conf << 'EOF'
+
+# 系统优化
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+vm.swappiness=10
+EOF
+
+# 首次启动优化：默认 WiFi 配置 + Flow Offloading + 激活 ECM + IRQ 均衡
+mkdir -p package/base-files/files/etc/uci-defaults
+
+# 默认 WiFi SSID 和密码（config_generate 生成后覆盖）
+cat > package/base-files/files/etc/uci-defaults/98-wifi-config << 'EOF'
+#!/bin/sh
+
+# radio0 = 5G, radio1 = 2.4G
+uci set wireless.default_radio0.ssid='AP_5G'
+uci set wireless.default_radio0.encryption='psk2'
+uci set wireless.default_radio0.key='a1b2c3d4'
+
+uci set wireless.default_radio1.ssid='AP'
+uci set wireless.default_radio1.encryption='psk2'
+uci set wireless.default_radio1.key='a1b2c3d4'
+
+uci commit wireless
+exit 0
+EOF
+chmod +x package/base-files/files/etc/uci-defaults/98-wifi-config
+
+cat > package/base-files/files/etc/uci-defaults/99-nss-optimize << 'EOF'
+#!/bin/sh
+
+# 防火墙 Flow Offloading（FW3/FW4 通用 uci 接口）
+uci set firewall.@defaults[0].flow_offloading='1'
+uci set firewall.@defaults[0].flow_offloading_hw='1'
+
+# PassWall2 使用 nftables 模式（FW4），首次启动时 config 可能尚未创建
+uci -q get passwall2.@global_forwarding[0] >/dev/null 2>&1 || \
+  uci -q add passwall2 global_forwarding >/dev/null 2>&1 || true
+uci set passwall2.@global_forwarding[0].prefer_nft='1'
+
+# 激活 ECM NSS 连接卸载
+if command -v uci >/dev/null 2>&1 && uci get ecm.@ecm[0].enable_ecm >/dev/null 2>&1; then
+  uci set ecm.@ecm[0].enable_ecm=1
+  uci set ecm.@ecm[0].enable_nss=1
+  uci set ecm.@ecm[0].enable_tcp=1
+  uci set ecm.@ecm[0].enable_udp=1
+fi
+
+# IRQ 均衡：将网络中断分散到 CPU0-3
+for irq_entry in /proc/irq/*/smp_affinity; do
+  irq_num=$(basename "$(dirname "$irq_entry")")
+  case "$irq_num" in
+    *[!0-9]*) continue ;;
+  esac
+  irq_name=$(grep "^ *$irq_num:" /proc/interrupts 2>/dev/null | head -1)
+  case "$irq_name" in
+    *nss*|*eth*|*wifi*|*ath*|*xhci*|*pcie*)
+      echo f > "$irq_entry" 2>/dev/null || true
+      ;;
+  esac
+done
+
+uci commit firewall
+uci commit ecm 2>/dev/null || true
+uci commit passwall2 2>/dev/null || true
+exit 0
+EOF
+chmod +x package/base-files/files/etc/uci-defaults/99-nss-optimize
 
 ./scripts/feeds update -i -a
 ./scripts/feeds install -a
