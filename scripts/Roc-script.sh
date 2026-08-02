@@ -223,24 +223,10 @@ if command -v uci >/dev/null 2>&1 && uci get ecm.@ecm[0].enable_ecm >/dev/null 2
   uci set ecm.@ecm[0].enable_udp=1
 fi
 
-# IRQ 均衡：启用 irqbalance 服务
+# IRQ 均衡：启用 irqbalance 服务（动态调整中断分配）
 uci -q set irqbalance.@irqbalance[0].enabled='1' 2>/dev/null || \
   { uci -q add irqbalance irqbalance >/dev/null 2>&1; uci -q set irqbalance.@irqbalance[0].enabled='1'; }
 uci commit irqbalance 2>/dev/null || true
-
-# IRQ 均衡：将网络中断分散到 CPU0-3
-for irq_entry in /proc/irq/*/smp_affinity; do
-  irq_num=$(basename "$(dirname "$irq_entry")")
-  case "$irq_num" in
-    *[!0-9]*) continue ;;
-  esac
-  irq_name=$(grep "^ *$irq_num:" /proc/interrupts 2>/dev/null | head -1)
-  case "$irq_name" in
-    *nss*|*eth*|*wifi*|*ath*|*xhci*|*pcie*)
-      echo f > "$irq_entry" 2>/dev/null || true
-      ;;
-  esac
-done
 
 uci commit firewall
 uci commit ecm 2>/dev/null || true
