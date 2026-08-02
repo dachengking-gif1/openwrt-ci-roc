@@ -201,7 +201,7 @@ uci set firewall.@defaults[0].flow_offloading_hw='1'
 # PassWall2 使用 nftables 模式（FW4），首次启动时 config 可能尚未创建
 uci -q get passwall2.@global_forwarding[0] >/dev/null 2>&1 || \
   uci -q add passwall2 global_forwarding >/dev/null 2>&1 || true
-uci set passwall2.@global_forwarding[0].prefer_nft='1'
+uci set passwall2.@global_forwarding[0].prefer_nft='1'\n# 禁用 PassWall2 自带 dnsmasq，保留系统 dnsmasq\nsed -i 's/^option dnsmasq/#&/' /etc/config/passwall2 2>/dev/null || true
 
 # 激活 ECM NSS 连接卸载
 if command -v uci >/dev/null 2>&1 && uci get ecm.@ecm[0].enable_ecm >/dev/null 2>&1; then
