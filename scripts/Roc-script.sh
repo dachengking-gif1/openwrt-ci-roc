@@ -139,7 +139,7 @@ EOF
 
 # NSS 专用 sysctl 优化（TCP/UDP 缓冲区 + 内存保留 + VM 回收策略）
 cat > package/base-files/files/etc/sysctl.d/90-nss-optimization.conf << 'EOF'
-vm.min_free_kbytes=32768
+vm.min_free_kbytes=16384
 vm.vfs_cache_pressure=50
 vm.dirty_ratio=20
 net.core.rmem_max=16777216
