@@ -137,6 +137,17 @@ vm.swappiness=10
 net.core.default_qdisc=fq
 EOF
 
+# NSS 专用 sysctl 优化（TCP/UDP 缓冲区 + 内存保留 + VM 回收策略）
+cat > package/base-files/files/etc/sysctl.d/90-nss-optimization.conf << 'EOF'
+vm.min_free_kbytes=32768
+vm.vfs_cache_pressure=50
+vm.dirty_ratio=20
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+net.core.netdev_budget=600
+net.netfilter.nf_conntrack_max=65535
+EOF
+
 # 默认 PPPoE 拨号配置
 cat > package/base-files/files/etc/uci-defaults/97-pppoe-config << 'EOF'
 #!/bin/sh
@@ -201,7 +212,7 @@ uci set firewall.@defaults[0].flow_offloading_hw='1'
 # PassWall2 使用 nftables 模式（FW4），首次启动时 config 可能尚未创建
 uci -q get passwall2.@global_forwarding[0] >/dev/null 2>&1 || \
   uci -q add passwall2 global_forwarding >/dev/null 2>&1 || true
-uci set passwall2.@global_forwarding[0].prefer_nft='1'\n# 禁用 PassWall2 自带 dnsmasq，保留系统 dnsmasq\nsed -i 's/^option dnsmasq/#&/' /etc/config/passwall2 2>/dev/null || true
+uci set passwall2.@global_forwarding[0].prefer_nft='1'
 
 # 激活 ECM NSS 连接卸载
 if command -v uci >/dev/null 2>&1 && uci get ecm.@ecm[0].enable_ecm >/dev/null 2>&1; then
@@ -211,6 +222,11 @@ if command -v uci >/dev/null 2>&1 && uci get ecm.@ecm[0].enable_ecm >/dev/null 2
   uci set ecm.@ecm[0].enable_tcp=1
   uci set ecm.@ecm[0].enable_udp=1
 fi
+
+# IRQ 均衡：启用 irqbalance 服务
+uci -q set irqbalance.@irqbalance[0].enabled='1' 2>/dev/null || \
+  { uci -q add irqbalance irqbalance >/dev/null 2>&1; uci -q set irqbalance.@irqbalance[0].enabled='1'; }
+uci commit irqbalance 2>/dev/null || true
 
 # IRQ 均衡：将网络中断分散到 CPU0-3
 for irq_entry in /proc/irq/*/smp_affinity; do
