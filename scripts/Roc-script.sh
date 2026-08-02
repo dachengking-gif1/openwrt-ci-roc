@@ -97,57 +97,6 @@ git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2 packag
 ./scripts/feeds update -i -a
 ./scripts/feeds install -a
 
-# 下载 ShadowQUIC 客户端
-mkdir -p package/base-files/files/usr/bin
-wget -q https://github.com/spongebob888/shadowquic/releases/download/v0.3.12/shadowquic-aarch64-linux-musl -O package/base-files/files/usr/bin/shadowquic
-chmod +x package/base-files/files/usr/bin/shadowquic
-
-# ShadowQUIC 配置文件
-mkdir -p package/base-files/files/etc/shadowquic
-cat > package/base-files/files/etc/shadowquic/client.yaml << 'EOF'
-inbound:
-    type: socks
-    bind-addr: "127.0.0.1:1089"
-outbound:
-    type: shadowquic
-    addr: "1.2.3.4:1443"
-    username: "admin"
-    password: "hello"
-    server-name: "cloudflare.com"
-    alpn: ["h3"]
-    initial-mtu: 1400
-    congestion-control: bbr
-    zero-rtt: true
-    gso: true
-    over-stream: false
-log-level: "info"
-EOF
-
-# ShadowQUIC init 脚本
-cat > package/base-files/files/etc/init.d/shadowquic << 'EOF'
-#!/bin/sh /etc/rc.common
-
-START=90
-USE_PROCD=1
-
-NAME=shadowquic
-CONFIG=/etc/shadowquic/client.yaml
-
-start_service() {
-    procd_open_instance
-    procd_set_param command /usr/bin/shadowquic -c "$CONFIG"
-    procd_set_param respawn 3600 5 0
-    procd_set_param stdout 1
-    procd_set_param stderr 1
-    procd_close_instance
-}
-
-stop_service() {
-    service_stop /usr/bin/shadowquic
-}
-EOF
-chmod +x package/base-files/files/etc/init.d/shadowquic
-
 # 调整 cpufreq 启动优先级为 95
 sed -i 's/^START=15$/START=95/' package/emortal/cpufreq/files/cpufreq.init
 
@@ -221,6 +170,27 @@ exit 0
 EOF
 chmod +x package/base-files/files/etc/uci-defaults/98-wifi-config
 
+# 无线稳定性参数（ath11k/QCN9074 兼容性加固）
+cat > package/base-files/files/etc/uci-defaults/98-wifi-stability << 'EOF'
+#!/bin/sh
+
+for radio in radio0 radio1; do
+  uci set wireless.${radio}.disassoc_low_ack='0'
+  uci set wireless.${radio}.skip_inactivity_poll='1'
+  uci set wireless.${radio}.max_inactivity='300'
+  uci set wireless.${radio}.ieee80211w='1'
+  uci set wireless.${radio}.mobility_domain='1234'
+  uci set wireless.${radio}.ft_over_ds='1'
+  uci set wireless.${radio}.ft_psk_generate_local='1'
+  uci set wireless.${radio}.he_bss_color='1'
+  uci set wireless.${radio}.he_bss_color_disabled='0'
+done
+
+uci commit wireless
+exit 0
+EOF
+chmod +x package/base-files/files/etc/uci-defaults/98-wifi-stability
+
 cat > package/base-files/files/etc/uci-defaults/99-nss-optimize << 'EOF'
 #!/bin/sh
 
@@ -235,6 +205,7 @@ uci set passwall2.@global_forwarding[0].prefer_nft='1'
 
 # 激活 ECM NSS 连接卸载
 if command -v uci >/dev/null 2>&1 && uci get ecm.@ecm[0].enable_ecm >/dev/null 2>&1; then
+  uci set ecm.global.acceleration_engine='nss'
   uci set ecm.@ecm[0].enable_ecm=1
   uci set ecm.@ecm[0].enable_nss=1
   uci set ecm.@ecm[0].enable_tcp=1
