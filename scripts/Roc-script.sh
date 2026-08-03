@@ -73,26 +73,26 @@ git_sparse_clone master https://github.com/immortalwrt/luci applications/luci-ap
 mv -f package/luci-app-upnp feeds/luci/applications/luci-app-upnp
 git_sparse_clone master https://github.com/immortalwrt/luci applications/luci-app-wol
 mv -f package/luci-app-wol feeds/luci/applications/luci-app-wol
-git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon feeds/luci/themes/luci-theme-argon
-git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config feeds/luci/applications/luci-app-argon-config
-git clone --depth=1 https://github.com/laipeng668/luci-app-openlist2 package/openlist2
-git clone --depth=1 https://github.com/gdy666/luci-app-lucky package/luci-app-lucky
-git clone --depth=1 https://github.com/tty228/luci-app-wechatpush package/luci-app-wechatpush
-git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
-git clone --depth=1 https://github.com/laipeng668/luci-app-gecoosac package/luci-app-gecoosac
-git clone --depth=1 https://github.com/NONGFAH/luci-app-athena-led package/luci-app-athena-led
+rm -rf feeds/luci/themes/luci-theme-argon && git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon feeds/luci/themes/luci-theme-argon
+rm -rf feeds/luci/applications/luci-app-argon-config && git clone --depth=1 https://github.com/jerrykuku/luci-app-argon-config feeds/luci/applications/luci-app-argon-config
+rm -rf package/openlist2 && git clone --depth=1 https://github.com/laipeng668/luci-app-openlist2 package/openlist2
+rm -rf package/luci-app-lucky && git clone --depth=1 https://github.com/gdy666/luci-app-lucky package/luci-app-lucky
+rm -rf package/luci-app-wechatpush && git clone --depth=1 https://github.com/tty228/luci-app-wechatpush package/luci-app-wechatpush
+rm -rf package/OpenAppFilter && git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
+rm -rf package/luci-app-gecoosac && git clone --depth=1 https://github.com/laipeng668/luci-app-gecoosac package/luci-app-gecoosac
+rm -rf package/luci-app-athena-led && git clone --depth=1 https://github.com/NONGFAH/luci-app-athena-led package/luci-app-athena-led
 chmod +x package/luci-app-athena-led/root/etc/init.d/athena_led package/luci-app-athena-led/root/usr/sbin/athena-led
 
 ### PassWall2 ###
 
 # 移除 OpenWrt Feeds 自带的核心库
 rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
-git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
+rm -rf package/passwall-packages && git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
 
 # 移除 OpenWrt Feeds 过时的LuCI版本
 rm -rf feeds/luci/applications/luci-app-passwall
 rm -rf feeds/luci/applications/luci-app-passwall2
-git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2 package/luci-app-passwall2
+rm -rf package/luci-app-passwall2 && git clone --depth=1 https://github.com/Openwrt-Passwall/openwrt-passwall2 package/luci-app-passwall2
 
 ./scripts/feeds update -i -a
 ./scripts/feeds install -a
@@ -103,19 +103,22 @@ sed -i 's/^START=15$/START=95/' package/emortal/cpufreq/files/cpufreq.init
 # 固件版本信息（在 feeds install 之后执行，避免被 feeds 重新注册覆盖）
 luci_system_js="feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
 firmware_version_anchor="_('Firmware Version'), (L.isObject(boardinfo.release) ? boardinfo.release.description + ' / ' : '') + (luciversion || ''),"
-grep -Fq "$firmware_version_anchor" "$luci_system_js" || { echo "Error: LuCI firmware version anchor was not found in $luci_system_js" >&2; exit 1; }
-sed -i "s#_('Firmware Version'), (L\\.isObject(boardinfo\\.release) ? boardinfo\\.release\\.description + ' / ' : '') + (luciversion || ''),# \
-            _('Firmware Version'),\n \
-            E('span', {}, [\n \
-                (L.isObject(boardinfo.release)\n \
-                ? boardinfo.release.description + ' / '\n \
-                : '') + (luciversion || '') + ' / ',\n \
-            E('a', {\n \
-                href: 'https://github.com/laipeng668/openwrt-ci-roc/releases',\n \
-                target: '_blank',\n \
-                rel: 'noopener noreferrer'\n \
-                }, [ 'Built by Roc $(date "+%Y-%m-%d %H:%M:%S")' ])\n \
+if grep -Fq "$firmware_version_anchor" "$luci_system_js"; then
+  sed -i "s#_('Firmware Version'), (L\\\\.isObject(boardinfo\\\\.release) ? boardinfo\\\\.release\\\\.description + ' / ' : '') + (luciversion || ''),# \\
+            _('Firmware Version'),\\n \\
+            E('span', {}, [\\n \\
+                (L.isObject(boardinfo.release)\\n \\
+                ? boardinfo.release.description + ' / '\\n \\
+                : '') + (luciversion || '') + ' / ',\\n \\
+            E('a', {\\n \\
+                href: 'https://github.com/laipeng668/openwrt-ci-roc/releases',\\n \\
+                target: '_blank',\\n \\
+                rel: 'noopener noreferrer'\\n \\
+                }, [ 'Built by Roc $(date "+%Y-%m-%d %H:%M:%S")' ])\\n \\
             ]),#" "$luci_system_js"
+else
+  echo "⚠️ LuCI firmware version anchor 未找到，跳过固件版本信息注入"
+fi
 
 # ============================================================
 # 首次启动配置（必须在 feeds install 之后，否则会被覆盖）
@@ -133,7 +136,7 @@ grep -qF "net.ipv4.tcp_congestion_control=bbr" package/base-files/files/etc/sysc
 
 # 系统优化
 net.ipv4.tcp_congestion_control=bbr
-vm.swappiness=10
+vm.swappiness=60
 net.core.default_qdisc=fq
 EOF
 
@@ -234,3 +237,23 @@ uci commit passwall2 2>/dev/null || true
 exit 0
 EOF
 chmod +x package/base-files/files/etc/uci-defaults/99-nss-optimize
+
+# Docker 服务配置（UCI-defaults）
+cat > package/base-files/files/etc/uci-defaults/99-docker-config << 'EOF'
+#!/bin/sh
+
+# Docker 网络配置（使用 nftables 模式，与 PassWall2 一致）
+uci set dockerd.globals='dockerd'
+uci set dockerd.globals.data_root='/var/lib/docker'
+uci set dockerd.globals.storage_driver='overlay2'
+uci set dockerd.globals.live_restore='1'
+uci set dockerd.globals.log_level='warn'
+uci set dockerd.globals.bip='172.17.0.1/16'
+
+# 启用 Docker 服务
+uci set dockerd.@dockerd[0].enabled='1'
+
+uci commit dockerd
+exit 0
+EOF
+chmod +x package/base-files/files/etc/uci-defaults/99-docker-config
