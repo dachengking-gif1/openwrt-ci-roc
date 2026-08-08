@@ -208,6 +208,10 @@ chmod +x package/base-files/files/etc/uci-defaults/98-wifi-stability
 cat > package/base-files/files/etc/uci-defaults/99-nss-optimize << 'EOF'
 #!/bin/sh
 
+# ZRAM 25%（512MB设备：100MB ZRAM + 保留更多主内存）
+uci set system.@system[0].zram_size_mb='100' 2>/dev/null || true
+uci set system.@system[0].zram_comp_algo='lz4' 2>/dev/null || true
+
 # 防火墙 Flow Offloading（FW3/FW4 通用 uci 接口）
 uci set firewall.@defaults[0].flow_offloading='1'
 uci set firewall.@defaults[0].flow_offloading_hw='1'
@@ -237,23 +241,3 @@ uci commit passwall2 2>/dev/null || true
 exit 0
 EOF
 chmod +x package/base-files/files/etc/uci-defaults/99-nss-optimize
-
-# Docker 服务配置（UCI-defaults）
-cat > package/base-files/files/etc/uci-defaults/99-docker-config << 'EOF'
-#!/bin/sh
-
-# Docker 网络配置（使用 nftables 模式，与 PassWall2 一致）
-uci set dockerd.globals='dockerd'
-uci set dockerd.globals.data_root='/var/lib/docker'
-uci set dockerd.globals.storage_driver='overlay2'
-uci set dockerd.globals.live_restore='1'
-uci set dockerd.globals.log_level='warn'
-uci set dockerd.globals.bip='172.17.0.1/16'
-
-# 启用 Docker 服务
-uci set dockerd.@dockerd[0].enabled='1'
-
-uci commit dockerd
-exit 0
-EOF
-chmod +x package/base-files/files/etc/uci-defaults/99-docker-config
